@@ -1,0 +1,223 @@
+{% extends "base.html" %}
+{% block content %}
+<h2 class="fw-bold mb-4">Panel de Administración - Quiniela NFL</h2>
+
+<form method="POST" id="matchForm">
+    <input type="hidden" name="action" value="add_match">
+    <input type="hidden" name="home_team" id="home_team_input">
+    <input type="hidden" name="away_team" id="away_team_input">
+
+    <div class="row">
+        <!-- COLUMNA IZQUIERDA: Tablero de los 32 equipos de la NFL con Logos -->
+        <div class="col-lg-5 mb-4">
+            <div class="card card-match p-3 shadow">
+                <h4 class="mb-2 text-warning">1. Selecciona los equipos</h4>
+                <p class="text-muted small mb-3">Haz clic en <strong>[L]</strong> para Local o en <strong>[V]</strong> para Visitante.</p>
+                
+                <div class="row g-2 overflow-auto" style="max-height: 500px;">
+                    {% for team_name, logo_url in teams_dict.items() %}
+                        <div class="col-12">
+                            <div class="d-flex align-items-center justify-content-between p-2 rounded bg-dark border border-secondary team-row" id="row_{{ loop.index }}">
+                                <div class="d-flex align-items-center">
+                                    <img src="{{ logo_url }}" style="width: 35px; height: 35px; object-fit: contain;" class="me-2">
+                                    <span class="small fw-semibold text-white">{{ team_name }}</span>
+                                </div>
+                                <div>
+                                    <button type="button" class="btn btn-sm btn-outline-warning px-2 py-0 me-1" onclick="selectTeam('{{ team_name }}', 'home', this)">L</button>
+                                    <button type="button" class="btn btn-sm btn-outline-info px-2 py-0" onclick="selectTeam('{{ team_name }}', 'away', this)">V</button>
+                                </div>
+                            </div>
+                        </div>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+
+        <!-- COLUMNA DERECHA: Configuración del Encuentro -->
+        <div class="col-lg-7 mb-4">
+            <div class="card card-match p-4 shadow mb-4">
+                <h4 class="mb-3 text-warning">2. Armar Encuentro</h4>
+                
+                <div class="row align-items-center text-center mb-3 bg-dark p-3 rounded border border-secondary">
+                    <div class="col-5">
+                        <small class="text-muted d-block">LOCAL</small>
+                        <span id="display_home" class="fw-bold text-warning fs-6">Ninguno</span>
+                    </div>
+                    <div class="col-2">
+                        <span class="badge bg-secondary fs-6">VS</span>
+                    </div>
+                    <div class="col-5">
+                        <small class="text-muted d-block">VISITANTE</small>
+                        <span id="display_away" class="fw-bold text-info fs-6">Ninguno</span>
+                    </div>
+                </div>
+
+                <div class="row">
+                    <div class="col-md-6 mb-3">
+                        <label class="form-label">Número de Semana</label>
+                        <input type="number" name="week" class="form-control" min="1" max="18" value="2" required>
+                    </div>
+                    <div class="col-md-6 mb-3">
+                        <label class="form-label">Fecha Límite (Solo 1er partido)</label>
+                        <input type="datetime-local" name="deadline" class="form-control">
+                        <small class="text-muted" style="font-size: 0.72rem;">Obligatorio solo si es el primer juego de la semana.</small>
+                    </div>
+                </div>
+
+                <button type="submit" class="btn btn-nfl w-100 py-2">Agregar Partido a la Quiniela</button>
+            </div>
+        </div>
+    </div>
+</form>
+
+<!-- SECCIÓN 3: Actualizar Marcadores Finales -->
+<div class="card card-match p-4 shadow mt-2 mb-4" id="scores-section">
+    <h4 class="mb-3 text-success">3. Actualizar Marcadores Finales</h4>
+    <div class="table-responsive">
+        <table class="table table-dark table-striped align-middle">
+            <thead>
+                <tr>
+                    <th>Sem</th>
+                    <th>Encuentro</th>
+                    <th>Cierre de Jornada</th>
+                    <th>Estado</th>
+                    <th>Marcador (L - V)</th>
+                    <th>Acción</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for m in matches %}
+                    <tr>
+                        <form method="POST" action="{{ url_for('admin') }}#scores-section">
+                            <input type="hidden" name="action" value="update_score">
+                            <input type="hidden" name="match_id" value="{{ m.id }}">
+                            <td>{{ m.week }}</td>
+                            <td class="fw-semibold">{{ m.home_team }} vs {{ m.away_team }}</td>
+                            <td><small>{{ m.deadline.strftime('%d/%m/%Y %H:%M') }}</small></td>
+                            <td>
+                                {% if m.status == 'final' %}
+                                    <span class="badge bg-success">Finalizado</span>
+                                {% else %}
+                                    <span class="badge bg-warning text-dark">Programado</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                <div class="d-flex align-items-center gap-2">
+                                    <input type="number" name="home_score" class="form-control form-control-sm text-center" value="{{ m.home_score }}" style="width: 70px;" required>
+                                    <span>-</span>
+                                    <input type="number" name="away_score" class="form-control form-control-sm text-center" value="{{ m.away_score }}" style="width: 70px;" required>
+                                </div>
+                            </td>
+                            <td>
+                                <button type="submit" class="btn btn-sm btn-success">Guardar</button>
+                        </form>
+                                <form method="POST" action="{{ url_for('admin') }}#scores-section" class="d-inline ms-1">
+                                    <input type="hidden" name="action" value="delete_match">
+                                    <input type="hidden" name="match_id" value="{{ m.id }}">
+                                    <button type="submit" class="btn btn-sm btn-outline-danger" onclick="return confirm('¿Borrar partido?')">Borrar</button>
+                                </form>
+                            </td>
+                    </tr>
+                {% else %}
+                    <tr>
+                        <td colspan="6" class="text-center text-muted py-3">No hay partidos creados todavía.</td>
+                    </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<!-- SECCIÓN 4: GESTIÓN DE PARTICIPANTES (NUEVO) -->
+<div class="card card-match p-4 shadow mt-2" id="users-section">
+    <h4 class="mb-3 text-info">👥 Gestión de Participantes Registrados</h4>
+    
+    <!-- Formulario para dar de alta un participante tú mismo -->
+    <div class="bg-dark p-3 rounded border border-secondary mb-4">
+        <h5 class="text-warning fs-6 mb-3">Dar de alta nuevo participante manualmente</h5>
+        <form method="POST" action="{{ url_for('admin') }}#users-section" class="row g-3">
+            <input type="hidden" name="action" value="add_user">
+            <div class="col-md-5">
+                <input type="text" name="new_username" class="form-control" placeholder="Nombre de usuario" required>
+            </div>
+            <div class="col-md-5">
+                <input type="password" name="new_password" class="form-control" placeholder="Contraseña temporal" required>
+            </div>
+            <div class="col-md-2">
+                <button type="submit" class="btn btn-nfl w-100">Registrar</button>
+            </div>
+        </form>
+    </div>
+
+    <!-- Listado de participantes -->
+    <div class="table-responsive">
+        <table class="table table-dark table-striped align-middle">
+            <thead>
+                <tr>
+                    <th>#</th>
+                    <th>Nombre de Usuario</th>
+                    <th>Cambiar Contraseña</th>
+                    <th>Acciones</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for u in users_list %}
+                    <tr>
+                        <td>{{ loop.index }}</td>
+                        <td class="fw-bold text-info">{{ u.username }}</td>
+                        <td>
+                            <form method="POST" action="{{ url_for('admin') }}#users-section" class="d-flex gap-2">
+                                <input type="hidden" name="action" value="edit_user">
+                                <input type="hidden" name="user_id" value="{{ u.id }}">
+                                <input type="text" name="edit_password" class="form-control form-control-sm" placeholder="Nueva contraseña" required style="max-width: 180px;">
+                                <button type="submit" class="btn btn-sm btn-outline-warning">Actualizar</button>
+                            </form>
+                        </td>
+                        <td>
+                            <form method="POST" action="{{ url_for('admin') }}#users-section" class="d-inline">
+                                <input type="hidden" name="action" value="delete_user">
+                                <input type="hidden" name="user_id" value="{{ u.id }}">
+                                <button type="submit" class="btn btn-sm btn-outline-danger" onclick="return confirm('¿Estás seguro de eliminar a este participante?')">Eliminar</button>
+                            </form>
+                        </td>
+                    </tr>
+                {% else %}
+                    <tr>
+                        <td colspan="4" class="text-center text-muted py-3">No hay participantes registrados todavía (aparte del administrador).</td>
+                    </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<div class="text-center mt-4 mb-4">
+    <a href="{{ url_for('index') }}" class="btn btn-outline-light">Ir a la Quiniela Principal</a>
+</div>
+
+<script>
+    let selectedHome = "";
+    let selectedAway = "";
+
+    function selectTeam(teamName, type, btnElement) {
+        if (type === 'home') {
+            if (selectedAway === teamName) {
+                alert("Un equipo no puede ser local y visitante al mismo tiempo.");
+                return;
+            }
+            selectedHome = teamName;
+            document.getElementById('home_team_input').value = teamName;
+            document.getElementById('display_home').innerText = teamName;
+        } else if (type === 'away') {
+            if (selectedHome === teamName) {
+                alert("Un equipo no puede ser local y visitante al mismo tiempo.");
+                return;
+            }
+            selectedAway = teamName;
+            document.getElementById('away_team_input').value = teamName;
+            document.getElementById('display_away').innerText = teamName;
+        }
+        btnElement.closest('.team-row').classList.add('border-danger');
+    }
+</script>
+{% endblock %}

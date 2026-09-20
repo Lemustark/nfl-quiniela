@@ -1,0 +1,96 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="row mb-4 align-items-center text-center">
+    <!-- LOGO CENTRAL DE LA NFL -->
+    <div class="col-12 mb-3">
+        <img src="https://a.espncdn.com/combiner/i?img=/i/teamlogos/leagues/500/nfl.png" alt="" style="width: 80px; height: 80px; object-fit: contain; filter: drop-shadow(0px 4px 10px rgba(0,0,0,0.6));">
+        <h1 class="fw-bold mt-2">Quiniela Semanal NFL</h1>
+        <p class="text-muted mb-0">Elige tu pronóstico para cada encuentro antes de que cierre la jornada.</p>
+    </div>
+
+    <!-- SELECTOR DE SEMANA -->
+    <div class="col-12 text-center mt-2">
+        <form method="GET" class="d-inline-flex align-items-center justify-content-center">
+            <label class="me-2 fw-bold text-warning">Seleccionar Semana:</label>
+            <select name="week" class="form-select bg-dark text-white border-secondary w-auto d-inline-block fw-bold" onchange="this.form.submit()">
+                {% for w in range(1, 19) %}
+                    <option value="{{ w }}" {% if week == w %}selected{% endif %}>Semana {{ w }}</option>
+                {% endfor %}
+            </select>
+        </form>
+    </div>
+</div>
+
+{% if deadline_passed %}
+    <div class="alert alert-danger text-center shadow-sm" role="alert">
+        ⏳ <strong>El tiempo de registro para esta jornada ha cerrado.</strong> La fecha límite fue el {{ deadline_date.strftime('%d/%m/%Y a las %H:%M') }}. Ya puedes consultar los resultados en vivo.
+    </div>
+{% elif deadline_date %}
+    <div class="alert alert-info text-center shadow-sm" role="alert">
+        ⏰ Límite para registrar o modificar pronósticos: <strong>{{ deadline_date.strftime('%d/%m/%Y a las %H:%M hrs') }}</strong>
+    </div>
+{% endif %}
+
+<form method="POST">
+    <div class="row">
+        {% for match in matches %}
+            <div class="col-md-6 mb-4">
+                <div class="card card-match p-3 shadow-sm">
+                    <div class="text-center text-muted small mb-2">
+                        {% if match.status == 'final' %}
+                            <span class="badge bg-success">Finalizado</span>
+                        {% else %}
+                            <span class="badge bg-secondary">Programado</span>
+                        {% endif %}
+                    </div>
+
+                    <div class="d-flex justify-content-between align-items-center text-center">
+                        
+                        <!-- Local -->
+                        <div class="flex-fill">
+                            <img src="{{ match.home_logo }}" class="team-logo mb-2" alt="">
+                            <h6 class="fw-bold mb-1">{{ match.home_team }}</h6>
+                            <div class="text-success fw-bold fs-5">{{ match.home_score }}</div>
+                            <div class="form-check d-flex justify-content-center mt-2">
+                                <input class="form-check-input" type="radio" name="match_{{ match.id }}" value="{{ match.home_team }}" 
+                                    id="home_{{ match.id }}" {% if user_preds.get(match.id) == match.home_team %}checked{% endif %} 
+                                    {% if deadline_passed %}disabled{% endif %} required>
+                                <label class="form-check-label ms-1 small text-warning" for="home_{{ match.id }}">Local</label>
+                            </div>
+                        </div>
+
+                        <div class="px-2">
+                            <span class="badge bg-dark border border-secondary fs-6">VS</span>
+                        </div>
+
+                        <!-- Visitante -->
+                        <div class="flex-fill">
+                            <img src="{{ match.away_logo }}" class="team-logo mb-2" alt="">
+                            <h6 class="fw-bold mb-1">{{ match.away_team }}</h6>
+                            <div class="text-success fw-bold fs-5">{{ match.away_score }}</div>
+                            <div class="form-check d-flex justify-content-center mt-2">
+                                <input class="form-check-input" type="radio" name="match_{{ match.id }}" value="{{ match.away_team }}" 
+                                    id="away_{{ match.id }}" {% if user_preds.get(match.id) == match.away_team %}checked{% endif %}
+                                    {% if deadline_passed %}disabled{% endif %}>
+                                <label class="form-check-label ms-1 small text-info" for="away_{{ match.id }}">Visitante</label>
+                            </div>
+                        </div>
+
+                    </div>
+                </div>
+            </div>
+        {% else %}
+            <div class="col-12 text-center py-5">
+                <h4 class="text-muted">No hay partidos creados para esta semana todavía.</h4>
+                <p class="text-muted">El administrador debe agregarlos desde el panel de administración.</p>
+            </div>
+        {% endfor %}
+    </div>
+
+    {% if matches and not deadline_passed %}
+        <div class="text-center mt-4 mb-5">
+            <button type="submit" class="btn btn-nfl btn-lg px-5 py-3 shadow">Guardar Mis Pronósticos</button>
+        </div>
+    {% endif %}
+</form>
+{% endblock %}

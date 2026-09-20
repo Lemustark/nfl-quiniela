@@ -1,0 +1,127 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="row mb-4 align-items-center">
+    <div class="col-md-6">
+        <h1 class="fw-bold">Resultados y Matriz de Quiniela</h1>
+        <p class="text-muted">Consulta la tabla de posiciones y el detalle de aciertos por partido.</p>
+    </div>
+    <div class="col-md-6 text-md-end">
+        <form method="GET" class="d-inline-flex align-items-center">
+            <label class="me-2 fw-bold">Semana:</label>
+            <select name="week" class="form-select bg-dark text-white border-secondary w-auto d-inline-block" onchange="this.form.submit()">
+                {% for w in range(1, 19) %}
+                    <option value="{{ w }}" {% if week == w %}selected{% endif %}>Semana {{ w }}</option>
+                {% endfor %}
+            </select>
+        </form>
+    </div>
+</div>
+
+<!-- SECCIÓN 1: TABLA GENERAL DE POSICIONES CON TROFEOS -->
+<div class="card card-match p-4 shadow mb-5">
+    <h4 class="mb-3 text-warning">🏆 Posiciones - Semana {{ week }}</h4>
+    <div class="table-responsive">
+        <table class="table table-dark table-striped align-middle">
+            <thead>
+                <tr>
+                    <th>#</th>
+                    <th>Participante</th>
+                    <th class="text-center">Aciertos</th>
+                    <th class="text-center">Efectividad</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for entry in scores %}
+                    <tr>
+                        <th scope="row">
+                            {{ loop.index }}
+                            {% if entry.correct == max_correct and max_correct > 0 %}
+                                <span class="ms-1 fs-5" title="¡Líder de la Quiniela!">🏆</span>
+                            {% endif %}
+                        </th>
+                        <td class="fw-bold text-info">{{ entry.username }}</td>
+                        <td class="text-center fw-bold text-success fs-5">{{ entry.correct }} / {{ entry.total }}</td>
+                        <td class="text-center">
+                            {% if entry.total > 0 %}
+                                {{ ((entry.correct / entry.total) * 100) | round(1) }}%
+                            {% else %}
+                                0%
+                            {% endif %}
+                        </td>
+                    </tr>
+                {% else %}
+                    <tr>
+                        <td colspan="4" class="text-center text-muted py-3">No hay participantes registrados en esta semana todavía.</td>
+                    </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<!-- SECCIÓN 2: MATRIZ DETALLADA COMPARATIVA CON LOGOS Y DISEÑO DESTACADO -->
+<div class="card card-match p-4 shadow mb-4">
+    <h4 class="mb-3 text-info">📊 Matriz Detallada de Pronósticos (L = Local, V = Visitante)</h4>
+    <p class="text-muted small">Compara los pronósticos de cada usuario contra el Resultado Oficial Master de la jornada.</p>
+    
+    <div class="table-responsive">
+        <table class="table table-dark table-bordered align-middle text-center">
+            <thead>
+                <tr>
+                    <th class="text-start bg-secondary text-white align-middle" style="min-width: 150px;">Participante</th>
+                    {% for m in matches %}
+                        <th style="min-width: 120px;" class="bg-dark">
+                            <div class="d-flex align-items-center justify-content-center gap-1 py-1">
+                                <img src="{{ m.home_logo }}" alt="{{ m.home_team }}" title="{{ m.home_team }}" style="width: 28px; height: 28px; object-fit: contain;">
+                                <span class="badge bg-secondary" style="font-size: 0.6rem;">VS</span>
+                                <img src="{{ m.away_logo }}" alt="{{ m.away_team }}" title="{{ m.away_team }}" style="width: 28px; height: 28px; object-fit: contain;">
+                            </div>
+                        </th>
+                    {% endfor %}
+                </tr>
+                <!-- FILA MASTER (RESULTADO OFICIAL RESALTADO) -->
+                <tr>
+                    <th class="text-start bg-warning text-dark fw-bold px-2 py-2 shadow" style="font-size: 0.85rem;">⭐ RESULTADO MASTER</th>
+                    {% for m in matches %}
+                        <th class="bg-warning text-dark fw-bold fs-5">
+                            {% if m.status == 'final' %}
+                                {{ master_results.get(m.id, '-') }}
+                            {% else %}
+                                <span class="text-muted fs-6">-</span>
+                            {% endif %}
+                        </th>
+                    {% endfor %}
+                </tr>
+            </thead>
+            <tbody>
+                {% for entry in scores %}
+                    <tr>
+                        <td class="text-start fw-bold text-info">{{ entry.username }}</td>
+                        {% for m in matches %}
+                            {% set user_choice = entry.choices.get(m.id, '-') %}
+                            {% set master_res = master_results.get(m.id) %}
+                            
+                            <td>
+                                {% if m.status == 'final' and master_res %}
+                                    {% if user_choice == master_res %}
+                                        <span class="badge bg-success w-100 py-2 fs-6 shadow-sm text-white fw-bold">{{ user_choice }} ✔</span>
+                                    {% else %}
+                                        <!-- Estilo con rojo y símbolo de equis (✖) de alta nitidez -->
+                                        <span class="badge bg-danger w-100 py-2 fs-6 shadow-sm text-white fw-bold" style="background-color: #dc3545 !important;">{{ user_choice }} <span style="font-size: 1.1rem; vertical-align: middle;">✖</span></span>
+                                    {% endif %}
+                                {% else %}
+                                    <span class="badge bg-secondary w-100 py-2 fs-6 text-white">{{ user_choice }}</span>
+                                {% endif %}
+                            </td>
+                        {% endfor %}
+                    </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<div class="text-center mt-4">
+    <a href="{{ url_for('index', week=week) }}" class="btn btn-outline-light">Volver a Pronósticos</a>
+</div>
+{% endblock %}
