@@ -1,3 +1,4 @@
+import os
 from datetime import datetime, timedelta
 from flask import Flask, flash, redirect, render_template, request, url_for
 from flask_login import (
@@ -13,7 +14,15 @@ from sqlalchemy import text
 
 app = Flask(__name__)
 app.config['SECRET_KEY'] = 'clave_secreta_super_segura_nfl'
-app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///quiniela.db'
+
+# Configuración inteligente de Base de Datos (SQLite local / PostgreSQL en Render)
+database_url = os.environ.get('DATABASE_URL')
+if database_url and database_url.startswith('postgres://'):
+  database_url = database_url.replace('postgres://', 'postgresql://', 1)
+
+app.config['SQLALCHEMY_DATABASE_URI'] = (
+    database_url or 'sqlite:///quiniela.db'
+)
 
 db = SQLAlchemy(app)
 login_manager = LoginManager()
