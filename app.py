@@ -301,6 +301,8 @@ def admin():
     flash('Acceso denegado', 'danger')
     return redirect(url_for('index'))
 
+  current_week = int(request.args.get('week', 2))
+
   if request.method == 'POST':
     action = request.form.get('action')
 
@@ -325,7 +327,7 @@ def admin():
                 ' fecha y hora límite de cierre.',
                 'danger',
             )
-            return redirect(url_for('admin'))
+            return redirect(url_for('admin', week=current_week))
           deadline_date = datetime.strptime(deadline_str, '%Y-%m-%dT%H:%M')
 
         new_match = Match(
@@ -344,6 +346,7 @@ def admin():
             f' {away_team} (Visitante).',
             'success',
         )
+      return redirect(url_for('admin', week=week))
 
     elif action == 'update_score':
       match_id = int(request.form.get('match_id'))
@@ -357,7 +360,7 @@ def admin():
         match.status = 'final'
         db.session.commit()
         flash('Marcador actualizado correctamente.', 'success')
-      return redirect(url_for('admin') + '#scores-section')
+      return redirect(url_for('admin', week=current_week) + '#scores-section')
 
     elif action == 'delete_match':
       match_id = int(request.form.get('match_id'))
@@ -365,7 +368,7 @@ def admin():
       Match.query.filter_by(id=match_id).delete()
       db.session.commit()
       flash('Partido eliminado correctamente.', 'success')
-      return redirect(url_for('admin') + '#scores-section')
+      return redirect(url_for('admin', week=current_week) + '#scores-section')
 
     elif action == 'add_user':
       new_username = request.form.get('new_username').strip()
@@ -387,7 +390,7 @@ def admin():
             f'Participante "{new_username}" registrado exitosamente.',
             'success',
         )
-      return redirect(url_for('admin') + '#users-section')
+      return redirect(url_for('admin', week=current_week) + '#users-section')
 
     elif action == 'edit_user':
       user_id = int(request.form.get('user_id'))
@@ -402,7 +405,7 @@ def admin():
             f' "{user_to_edit.username}".',
             'success',
         )
-      return redirect(url_for('admin') + '#users-section')
+      return redirect(url_for('admin', week=current_week) + '#users-section')
 
     elif action == 'delete_user':
       user_id = int(request.form.get('user_id'))
@@ -414,7 +417,7 @@ def admin():
         flash('Participante eliminado correctamente.', 'success')
       else:
         flash('No se puede eliminar al administrador principal.', 'danger')
-      return redirect(url_for('admin') + '#users-section')
+      return redirect(url_for('admin', week=current_week) + '#users-section')
 
     elif action == 'toggle_payment':
       user_id = int(request.form.get('user_id'))
@@ -428,13 +431,22 @@ def admin():
             f' {estado}.',
             'success',
         )
-      return redirect(url_for('admin') + '#users-section')
+      return redirect(url_for('admin', week=current_week) + '#users-section')
 
-  matches = Match.query.order_by(Match.week.asc(), Match.id.asc()).all()
+  # Filtrar los partidos estrictamente por la semana seleccionada
+  matches = (
+      Match.query.filter_by(week=current_week)
+      .order_by(Match.id.asc())
+      .all()
+  )
   users_list = User.query.filter(User.username != 'admin').all()
 
   return render_template(
-      'admin.html', matches=matches, teams_dict=NFL_TEAMS, users_list=users_list
+      'admin.html',
+      matches=matches,
+      teams_dict=NFL_TEAMS,
+      users_list=users_list,
+      week=current_week,
   )
 
 if __name__ == '__main__':

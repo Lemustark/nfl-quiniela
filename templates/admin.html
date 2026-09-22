@@ -1,6 +1,20 @@
 {% extends "base.html" %}
 {% block content %}
-<h2 class="fw-bold mb-4">Panel de Administración - Quiniela NFL</h2>
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h2 class="fw-bold m-0">Panel de Administración - Quiniela NFL</h2>
+    
+    <!-- Selector rápido de semana -->
+    <div class="dropdown">
+        <button class="btn btn-warning dropdown-toggle fw-bold" type="button" data-bs-toggle="dropdown">
+            Semana {{ week }}
+        </button>
+        <ul class="dropdown-menu dropdown-menu-dark">
+            {% for w in range(1, 19) %}
+                <li><a class="dropdown-item {% if w == week %}active{% endif %}" href="{{ url_for('admin', week=w) }}">Semana {{ w }}</a></li>
+            {% endfor %}
+        </ul>
+    </div>
+</div>
 
 <form method="POST" id="matchForm">
     <input type="hidden" name="action" value="add_match">
@@ -55,7 +69,7 @@
                 <div class="row">
                     <div class="col-md-6 mb-3">
                         <label class="form-label">Número de Semana</label>
-                        <input type="number" name="week" class="form-control" min="1" max="18" value="2" required>
+                        <input type="number" name="week" class="form-control" min="1" max="18" value="{{ week }}" required>
                     </div>
                     <div class="col-md-6 mb-3">
                         <label class="form-label">Fecha Límite (Solo 1er partido)</label>
@@ -72,7 +86,7 @@
 
 <!-- SECCIÓN 3: Actualizar Marcadores Finales -->
 <div class="card card-match p-4 shadow mt-2 mb-4" id="scores-section">
-    <h4 class="mb-3 text-success">3. Actualizar Marcadores Finales</h4>
+    <h4 class="mb-3 text-success">3. Actualizar Marcadores Finales (Semana {{ week }})</h4>
     <div class="table-responsive">
         <table class="table table-dark table-striped align-middle">
             <thead>
@@ -88,7 +102,7 @@
             <tbody>
                 {% for m in matches %}
                     <tr>
-                        <form method="POST" action="{{ url_for('admin') }}#scores-section">
+                        <form method="POST" action="{{ url_for('admin', week=week) }}#scores-section">
                             <input type="hidden" name="action" value="update_score">
                             <input type="hidden" name="match_id" value="{{ m.id }}">
                             <td>{{ m.week }}</td>
@@ -111,7 +125,7 @@
                             <td>
                                 <button type="submit" class="btn btn-sm btn-success">Guardar</button>
                         </form>
-                                <form method="POST" action="{{ url_for('admin') }}#scores-section" class="d-inline ms-1">
+                                <form method="POST" action="{{ url_for('admin', week=week) }}#scores-section" class="d-inline ms-1">
                                     <input type="hidden" name="action" value="delete_match">
                                     <input type="hidden" name="match_id" value="{{ m.id }}">
                                     <button type="submit" class="btn btn-sm btn-outline-danger" onclick="return confirm('¿Borrar partido?')">Borrar</button>
@@ -120,7 +134,7 @@
                     </tr>
                 {% else %}
                     <tr>
-                        <td colspan="6" class="text-center text-muted py-3">No hay partidos creados todavía.</td>
+                        <td colspan="6" class="text-center text-muted py-3">No hay partidos creados para la Semana {{ week }} todavía.</td>
                     </tr>
                 {% endfor %}
             </tbody>
@@ -135,7 +149,7 @@
     <!-- Formulario para dar de alta un participante tú mismo -->
     <div class="bg-dark p-3 rounded border border-secondary mb-4">
         <h5 class="text-warning fs-6 mb-3">Dar de alta nuevo participante manualmente</h5>
-        <form method="POST" action="{{ url_for('admin') }}#users-section" class="row g-3">
+        <form method="POST" action="{{ url_for('admin', week=week) }}#users-section" class="row g-3">
             <input type="hidden" name="action" value="add_user">
             <div class="col-md-5">
                 <input type="text" name="new_username" class="form-control" placeholder="Nombre de usuario" required>
@@ -168,7 +182,7 @@
                         <td class="fw-bold text-info">{{ u.username }}</td>
                         <td>
                             <!-- Formulario para alternar estatus de pago -->
-                            <form method="POST" action="{{ url_for('admin') }}#users-section" class="d-inline">
+                            <form method="POST" action="{{ url_for('admin', week=week) }}#users-section" class="d-inline">
                                 <input type="hidden" name="action" value="toggle_payment">
                                 <input type="hidden" name="user_id" value="{{ u.id }}">
                                 {% if u.has_paid %}
@@ -179,7 +193,7 @@
                             </form>
                         </td>
                         <td>
-                            <form method="POST" action="{{ url_for('admin') }}#users-section" class="d-flex gap-2">
+                            <form method="POST" action="{{ url_for('admin', week=week) }}#users-section" class="d-flex gap-2">
                                 <input type="hidden" name="action" value="edit_user">
                                 <input type="hidden" name="user_id" value="{{ u.id }}">
                                 <input type="text" name="edit_password" class="form-control form-control-sm" placeholder="Nueva contraseña" required style="max-width: 180px;">
@@ -187,7 +201,7 @@
                             </form>
                         </td>
                         <td>
-                            <form method="POST" action="{{ url_for('admin') }}#users-section" class="d-inline">
+                            <form method="POST" action="{{ url_for('admin', week=week) }}#users-section" class="d-inline">
                                 <input type="hidden" name="action" value="delete_user">
                                 <input type="hidden" name="user_id" value="{{ u.id }}">
                                 <button type="submit" class="btn btn-sm btn-outline-danger" onclick="return confirm('¿Estás seguro de eliminar a este participante?')">Eliminar</button>
