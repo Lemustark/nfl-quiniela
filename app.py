@@ -199,6 +199,13 @@ def leaderboard():
   matches = Match.query.filter_by(week=current_week).all()
   match_dict = {m.id: m for m in matches}
 
+  # Calcular si el deadline de la semana ya pasó (el primer partido marca el cierre)
+  deadline_passed = False
+  if matches:
+    first_match_deadline = min(m.deadline for m in matches)
+    if datetime.now() >= first_match_deadline:
+      deadline_passed = True
+
   # Excluir al usuario 'admin' de la lista de participantes por ética
   users = User.query.filter(User.username != 'admin').all()
   scores = []
@@ -213,7 +220,15 @@ def leaderboard():
       match = match_dict.get(p.match_id)
       if match:
         choice = 'L' if p.chosen_team == match.home_team else 'V'
-        user_match_choices[p.match_id] = choice
+
+        # CANDADO: Solo mostrar el pronóstico de otros si ya pasó el deadline,
+        # o si es el propio usuario actual.
+        if deadline_passed or u.id == current_user.id:
+          user_match_choices[p.match_id] = choice
+        else:
+          user_match_choices[p.match_id] = (
+              '🔒'  # Símbolo de oculto antes de que inicie la jornada
+          )
 
         if match.status == 'final':
           total_predicted += 1
@@ -256,6 +271,7 @@ def leaderboard():
       match_dict=match_dict,
       max_correct=max_correct,
       master_results=master_results,
+      deadline_passed=deadline_passed,
   )
 
 
