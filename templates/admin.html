@@ -123,12 +123,19 @@
                                 </div>
                             </td>
                             <td>
-                                <button type="submit" class="btn btn-sm btn-success">Guardar</button>
+                                <button type="submit" class="btn btn-sm btn-success mb-1" title="Guardar cambios de marcador">Guardar</button>
                         </form>
+                                {% if m.status == 'final' %}
+                                    <form method="POST" action="{{ url_for('admin', week=week) }}#scores-section" class="d-inline ms-1">
+                                        <input type="hidden" name="action" value="reopen_match">
+                                        <input type="hidden" name="match_id" value="{{ m.id }}">
+                                        <button type="submit" class="btn btn-sm btn-outline-warning mb-1" title="Regresar a programado para corregir">Reabrir 🔄</button>
+                                    </form>
+                                {% endif %}
                                 <form method="POST" action="{{ url_for('admin', week=week) }}#scores-section" class="d-inline ms-1">
                                     <input type="hidden" name="action" value="delete_match">
                                     <input type="hidden" name="match_id" value="{{ m.id }}">
-                                    <button type="submit" class="btn btn-sm btn-outline-danger" onclick="return confirm('¿Borrar partido?')">Borrar</button>
+                                    <button type="submit" class="btn btn-sm btn-outline-danger mb-1" onclick="return confirm('¿Borrar partido?')">Borrar</button>
                                 </form>
                             </td>
                     </tr>

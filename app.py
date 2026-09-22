@@ -433,6 +433,19 @@ def admin():
         )
       return redirect(url_for('admin', week=current_week) + '#users-section')
 
+    elif action == 'reopen_match':
+      match_id = int(request.form.get('match_id'))
+      match = Match.query.get(match_id)
+      if match:
+        match.status = 'scheduled'
+        db.session.commit()
+        flash(
+            f'Encuentro {match.home_team} vs {match.away_team} reabierto con'
+            ' éxito.',
+            'success',
+        )
+      return redirect(url_for('admin', week=current_week) + '#scores-section')
+
   # Filtrar los partidos estrictamente por la semana seleccionada
   matches = (
       Match.query.filter_by(week=current_week)
