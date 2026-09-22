@@ -20,22 +20,7 @@ login_manager = LoginManager()
 login_manager.init_app(app)
 login_manager.login_view = 'login'
 
-# --- PARCHE AUTOMÁTICO Y ADMIN INICIAL (CORRE SIEMPRE AL INICIAR) ---
-with app.app_context():
-  db.create_all()
-  try:
-    with db.engine.connect() as connection:
-      connection.execute(
-          text('ALTER TABLE user ADD COLUMN has_paid BOOLEAN DEFAULT 0;')
-      )
-      connection.commit()
-  except Exception:
-    pass  # Si la columna ya existe, la ignora sin problema
 
-  if not User.query.filter_by(username='admin').first():
-    admin_user = User(username='admin', password='adminpassword', is_admin=True)
-    db.session.add(admin_user)
-    db.session.commit()
 
 # --- DICCIONARIO OFICIAL DE LOS 32 EQUIPOS NFL Y SUS LOGOS ---
 NFL_TEAMS = {
@@ -100,6 +85,22 @@ class Prediction(db.Model):
   match_id = db.Column(db.Integer, db.ForeignKey('match.id'), nullable=False)
   chosen_team = db.Column(db.String(100), nullable=False)
 
+# --- PARCHE AUTOMÁTICO Y ADMIN INICIAL (CORRE SIEMPRE AL INICIAR) ---
+with app.app_context():
+  db.create_all()
+  try:
+    with db.engine.connect() as connection:
+      connection.execute(
+          text('ALTER TABLE user ADD COLUMN has_paid BOOLEAN DEFAULT 0;')
+      )
+      connection.commit()
+  except Exception:
+    pass  # Si la columna ya existe, la ignora sin problema
+
+  if not User.query.filter_by(username='admin').first():
+    admin_user = User(username='admin', password='adminpassword', is_admin=True)
+    db.session.add(admin_user)
+    db.session.commit()
 
 @login_manager.user_loader
 def load_user(user_id):
