@@ -56,13 +56,12 @@ NFL_TEAMS = {
 }
 
 
-# --- MODELOS ---
 class User(UserMixin, db.Model):
   id = db.Column(db.Integer, primary_key=True)
   username = db.Column(db.String(150), unique=True, nullable=False)
   password = db.Column(db.String(150), nullable=False)
   is_admin = db.Column(db.Boolean, default=False)
-
+  has_paid = db.Column(db.Boolean, default=False)  # <-- NUEVA COLUMNA DE PAGO
 
 class Match(db.Model):
   id = db.Column(db.Integer, primary_key=True)
@@ -396,6 +395,20 @@ def admin():
         flash('Participante eliminado correctamente.', 'success')
       else:
         flash('No se puede eliminar al administrador principal.', 'danger')
+      return redirect(url_for('admin') + '#users-section')
+
+    elif action == 'toggle_payment':
+      user_id = int(request.form.get('user_id'))
+      user_to_toggle = User.query.get(user_id)
+      if user_to_toggle and user_to_toggle.username != 'admin':
+        user_to_toggle.has_paid = not user_to_toggle.has_paid
+        db.session.commit()
+        estado = 'Pagado' if user_to_toggle.has_paid else 'Pendiente'
+        flash(
+            f'Estatus de pago para "{user_to_toggle.username}" cambiado a:'
+            f' {estado}.',
+            'success',
+        )
       return redirect(url_for('admin') + '#users-section')
 
   matches = Match.query.order_by(Match.week.asc(), Match.id.asc()).all()

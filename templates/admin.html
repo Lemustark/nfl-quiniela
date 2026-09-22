@@ -128,7 +128,7 @@
     </div>
 </div>
 
-<!-- SECCIÓN 4: GESTIÓN DE PARTICIPANTES (NUEVO) -->
+<!-- SECCIÓN 4: GESTIÓN DE PARTICIPANTES -->
 <div class="card card-match p-4 shadow mt-2" id="users-section">
     <h4 class="mb-3 text-info">👥 Gestión de Participantes Registrados</h4>
     
@@ -156,6 +156,7 @@
                 <tr>
                     <th>#</th>
                     <th>Nombre de Usuario</th>
+                    <th>Estatus de Pago</th>
                     <th>Cambiar Contraseña</th>
                     <th>Acciones</th>
                 </tr>
@@ -165,6 +166,18 @@
                     <tr>
                         <td>{{ loop.index }}</td>
                         <td class="fw-bold text-info">{{ u.username }}</td>
+                        <td>
+                            <!-- Formulario para alternar estatus de pago -->
+                            <form method="POST" action="{{ url_for('admin') }}#users-section" class="d-inline">
+                                <input type="hidden" name="action" value="toggle_payment">
+                                <input type="hidden" name="user_id" value="{{ u.id }}">
+                                {% if u.has_paid %}
+                                    <button type="submit" class="btn btn-sm btn-success" title="Clic para cambiar a pendiente">Pagado 🟢</button>
+                                {% else %}
+                                    <button type="submit" class="btn btn-sm btn-warning text-dark" title="Clic para cambiar a pagado">Pendiente 🟡</button>
+                                {% endif %}
+                            </form>
+                        </td>
                         <td>
                             <form method="POST" action="{{ url_for('admin') }}#users-section" class="d-flex gap-2">
                                 <input type="hidden" name="action" value="edit_user">
@@ -183,7 +196,7 @@
                     </tr>
                 {% else %}
                     <tr>
-                        <td colspan="4" class="text-center text-muted py-3">No hay participantes registrados todavía (aparte del administrador).</td>
+                        <td colspan="5" class="text-center text-muted py-3">No hay participantes registrados todavía (aparte del administrador).</td>
                     </tr>
                 {% endfor %}
             </tbody>
