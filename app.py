@@ -9,6 +9,7 @@ from flask_login import (
     logout_user,
 )
 from flask_sqlalchemy import SQLAlchemy
+from sqlalchemy import text
 
 app = Flask(__name__)
 app.config['SECRET_KEY'] = 'clave_secreta_super_segura_nfl'
@@ -418,12 +419,26 @@ def admin():
       'admin.html', matches=matches, teams_dict=NFL_TEAMS, users_list=users_list
   )
 
-
 if __name__ == '__main__':
   with app.app_context():
     db.create_all()
+
+    # --- AUTO-ACTUALIZADOR DE LA BASE DE DATOS (SQLite) ---
+    # Esto revisa si la columna 'has_paid' ya existe en la tabla 'user'; si no, la crea sola.
+    try:
+      with db.engine.connect() as connection:
+        connection.execute(
+            text('ALTER TABLE user ADD COLUMN has_paid BOOLEAN DEFAULT 0;')
+        )
+        connection.commit()
+      print('Columna has_paid agregada exitosamente a la base de datos.')
+    except Exception as e:
+      # Si la columna ya existe, SQLite lanzará un error que ignoramos tranquilamente
+      print('La base de datos ya está actualizada (o la columna ya existe).')
+
     if not User.query.filter_by(username='admin').first():
       admin_user = User(username='admin', password='adminpassword', is_admin=True)
       db.session.add(admin_user)
       db.session.commit()
+
   app.run(debug=True)
