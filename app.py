@@ -29,6 +29,10 @@ login_manager = LoginManager()
 login_manager.init_app(app)
 login_manager.login_view = 'login'
 
+# Crear las tablas automáticamente en PostgreSQL si no existen
+with app.app_context():
+  db.create_all()
+
 
 
 # --- DICCIONARIO OFICIAL DE LOS 32 EQUIPOS NFL Y SUS LOGOS ---
