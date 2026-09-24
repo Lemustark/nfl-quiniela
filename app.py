@@ -173,17 +173,23 @@ def logout():
 @app.route('/', methods=['GET', 'POST'])
 @login_required
 def index():
-  current_week = int(request.args.get('week', 2))
-  matches = Match.query.filter_by(week=current_week).all()
+    current_week = int(request.args.get('week', 2))
+    matches = Match.query.filter_by(week=current_week).all()
 
-  deadline_passed = False
-  deadline_date = None
-  if matches:
-    deadline_date = matches[0].deadline
-    # Obtener la hora actual exacta en la zona horaria de México
-now_mx = datetime.now(ZoneInfo('America/Mexico_City')).replace(tzinfo=None)
-if now_mx >= deadline_date:
-  deadline_passed = True
+    deadline_passed = False
+    deadline_date = None
+    if matches:
+        deadline_date = matches[0].deadline
+        
+        # 1. Obtenemos la hora actual exacta en México
+        now_mx = datetime.now(ZoneInfo('America/Mexico_City')).replace(tzinfo=None)
+        
+        # 2. Aseguramos que el deadline del partido también esté libre de tz para comparar peras con peras
+        match_deadline = deadline_date.replace(tzinfo=None) if deadline_date.tzinfo else deadline_date
+        
+        # 3. Comparamos de forma limpia
+        if now_mx >= match_deadline:
+            deadline_passed = True
 
   if request.method == 'POST':
     if deadline_passed:
