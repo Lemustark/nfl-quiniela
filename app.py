@@ -1,5 +1,6 @@
 import os
 from datetime import datetime, timedelta
+from zoneinfo import ZoneInfo  # <-- NUEVO
 from flask import Flask, flash, redirect, render_template, request, url_for
 from flask_login import (
     LoginManager,
@@ -179,8 +180,10 @@ def index():
   deadline_date = None
   if matches:
     deadline_date = matches[0].deadline
-    if datetime.now() >= deadline_date:
-      deadline_passed = True
+    # Obtener la hora actual exacta en la zona horaria de México
+now_mx = datetime.now(ZoneInfo('America/Mexico_City')).replace(tzinfo=None)
+if now_mx >= deadline_date:
+  deadline_passed = True
 
   if request.method == 'POST':
     if deadline_passed:
@@ -234,8 +237,9 @@ def leaderboard():
   deadline_passed = False
   if matches:
     first_match_deadline = min(m.deadline for m in matches)
-    if datetime.now() >= first_match_deadline:
-      deadline_passed = True
+   now_mx = datetime.now(ZoneInfo('America/Mexico_City')).replace(tzinfo=None)
+if now_mx >= first_match_deadline:
+  deadline_passed = True
 
   # Excluir al usuario 'admin' de la lista de participantes por ética
   users = User.query.filter(User.username != 'admin').all()
