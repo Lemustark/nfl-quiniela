@@ -180,16 +180,9 @@ def index():
     deadline_passed = False
     deadline_date = None
     if matches:
-        # Tomamos el deadline más lejano para que la jornada siga abierta mientras haya partidos futuros
         deadline_date = max(m.deadline for m in matches)
-        
-        # 1. Obtenemos la hora actual exacta en México
         now_mx = datetime.now(ZoneInfo('America/Mexico_City')).replace(tzinfo=None)
-        
-        # 2. Aseguramos que el deadline también esté libre de tz para comparar correctamente
         match_deadline = deadline_date.replace(tzinfo=None) if deadline_date.tzinfo else deadline_date
-        
-        # 3. Comparamos
         if now_mx >= match_deadline:
             deadline_passed = True
 
@@ -241,7 +234,6 @@ def leaderboard():
     matches = Match.query.filter_by(week=current_week).all()
     match_dict = {m.id: m for m in matches}
 
-    # Calcular si el deadline de la semana ya pasó usando el max deadline
     deadline_passed = False
     if matches:
         first_match_deadline = max(m.deadline for m in matches)
@@ -249,7 +241,6 @@ def leaderboard():
         if now_mx >= first_match_deadline:
             deadline_passed = True
 
-    # Excluir al usuario 'admin' de la lista de participantes por ética
     users = User.query.filter(User.username != 'admin').all()
     scores = []
 
@@ -264,12 +255,12 @@ def leaderboard():
             if match:
                 choice = 'L' if p.chosen_team == match.home_team else 'V'
 
-                # CANDADO: Solo mostrar el pronóstico de otros si ya pasó el deadline
                 if deadline_passed or u.id == current_user.id:
                     user_match_choices[p.match_id] = choice
                 else:
                     user_match_choices[p.match_id] = '🔒'
 
+                # Solo contabiliza puntos si el partido está publicado como 'final'
                 if match.status == 'final':
                     total_predicted += 1
                     winner = None
@@ -368,7 +359,6 @@ def admin():
                 )
             return redirect(url_for('admin', week=week))
 
-        # --- NUEVA ACCIÓN: EDITAR PARTIDO (EQUIPOS Y DEADLINE) ---
         elif action == 'edit_match':
             match_id = int(request.form.get('match_id'))
             home_team = request.form.get('edit_home_team')
@@ -408,6 +398,39 @@ def admin():
                 flash('Marcador actualizado correctamente.', 'success')
             return redirect(url_for('admin', week=current_week) + '#scores-section')
 
+        # --- NUEVA ACCIÓN: GUARDAR BORRADORES EN LOTE ---
+        elif action == 'save_all_scores':
+            match_ids = request.form.getlist('match_ids')
+            for m_id in match_ids:
+                match = Match.query.get(int(m_id))
+                if match:
+                    home_val = request.form.get(f'home_score_{m_id}')
+                    away_val = request.form.get(f'away_score_{m_id}')
+                    if home_val is not None and away_val is not None:
+                        match.home_score = int(home_val)
+                        match.away_score = int(away_val)
+                        if match.status == 'scheduled':
+                            match.status = 'saved'
+            db.session.commit()
+            flash('Marcadores guardados como borrador correctamente.', 'success')
+            return redirect(url_for('admin', week=current_week) + '#scores-section')
+
+        # --- NUEVA ACCIÓN: PUBLICAR JORNADA GLOBAL ---
+        elif action == 'publish_week':
+            match_ids = request.form.getlist('match_ids')
+            for m_id in match_ids:
+                match = Match.query.get(int(m_id))
+                if match:
+                    home_val = request.form.get(f'home_score_{m_id}')
+                    away_val = request.form.get(f'away_score_{m_id}')
+                    if home_val is not None and away_val is not None:
+                        match.home_score = int(home_val)
+                        match.away_score = int(away_val)
+                    match.status = 'final'
+            db.session.commit()
+            flash('¡Jornada publicada oficialmente! Tabla de posiciones actualizada.', 'success')
+            return redirect(url_for('admin', week=current_week) + '#scores-section')
+
         elif action == 'delete_match':
             match_id = int(request.form.get('match_id'))
             Prediction.query.filter_by(match_id=match_id).delete()
@@ -433,7 +456,6 @@ def admin():
                 flash(f'Participante "{new_username}" registrado exitosamente.', 'success')
             return redirect(url_for('admin', week=current_week) + '#users-section')
 
-        # --- ACCIÓN MEJORADA: EDITAR USUARIO (NOMBRE Y/O CONTRASEÑA) ---
         elif action == 'edit_user':
             user_id = int(request.form.get('user_id'))
             new_username = request.form.get('edit_username', '').strip()
@@ -442,7 +464,6 @@ def admin():
 
             if user_to_edit:
                 if new_username and new_username != user_to_edit.username:
-                    # Validar que no exista otro usuario con ese nombre
                     if User.query.filter_by(username=new_username).first():
                         flash(f'El nombre de usuario "{new_username}" ya está en uso.', 'danger')
                         return redirect(url_for('admin', week=current_week) + '#users-section')
@@ -504,4 +525,3 @@ def admin():
 
 if __name__ == '__main__':
     app.run(debug=True)
-    

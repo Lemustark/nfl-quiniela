@@ -84,93 +84,98 @@
     </div>
 </form>
 
-<!-- SECCIÓN 3: Actualizar Marcadores y Editar Partidos -->
+<!-- SECCIÓN 3: GESTIÓN DE MARCADORES Y PUBLICACIÓN EN LOTE -->
 <div class="card card-match p-4 shadow mt-2 mb-4" id="scores-section">
-    <h4 class="mb-3 text-success">3. Administrar Partidos y Marcadores (Semana {{ week }})</h4>
-    <div class="table-responsive">
-        <table class="table table-dark table-striped align-middle">
-            <thead>
-                <tr>
-                    <th>Sem</th>
-                    <th>Encuentro / Editar Equipos</th>
-                    <th>Cierre (Deadline)</th>
-                    <th>Estado</th>
-                    <th>Marcador (L - V)</th>
-                    <th>Acciones</th>
-                </tr>
-            </thead>
-            <tbody>
-                {% for m in matches %}
+    <h4 class="mb-3 text-success">3. Administrar Marcadores y Publicación (Semana {{ week }})</h4>
+    <p class="text-muted small mb-3">Puedes editar los equipos/horarios individualmente, o actualizar todos los marcadores y decidir si los guardas como borrador o los publicas globalmente.</p>
+
+    <form method="POST" action="{{ url_for('admin', week=week) }}#scores-section">
+        <div class="table-responsive">
+            <table class="table table-dark table-striped align-middle">
+                <thead>
                     <tr>
-                        <td>{{ m.week }}</td>
-                        <!-- Formulario para editar Equipos y Deadline del partido -->
-                        <td>
-                            <form method="POST" action="{{ url_for('admin', week=week) }}#scores-section" class="row g-1 align-items-center">
-                                <input type="hidden" name="action" value="edit_match">
-                                <input type="hidden" name="match_id" value="{{ m.id }}">
-                                <div class="col-12">
-                                    <select name="edit_home_team" class="form-select form-select-sm bg-dark text-white border-secondary mb-1">
-                                        {% for t_name in teams_dict.keys() %}
-                                            <option value="{{ t_name }}" {% if t_name == m.home_team %}selected{% endif %}>Local: {{ t_name }}</option>
-                                        {% endfor %}
-                                    </select>
+                        <th>Sem</th>
+                        <th>Encuentro / Editar Equipos & Fecha</th>
+                        <th>Estado Actual</th>
+                        <th>Marcador (L - V)</th>
+                        <th>Acciones</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for m in matches %}
+                        <input type="hidden" name="match_ids" value="{{ m.id }}">
+                        <tr>
+                            <td>{{ m.week }}</td>
+                            <td>
+                                <!-- Formulario independiente para editar los equipos y la fecha/hora de este partido -->
+                                <div class="p-2 rounded bg-dark border border-secondary mb-1">
+                                    <div class="row g-1">
+                                        <div class="col-12">
+                                            <select name="edit_home_team_{{ m.id }}" id="edit_home_{{ m.id }}" class="form-select form-select-sm bg-dark text-white border-secondary mb-1" onchange="submitEditMatch('{{ m.id }}')">
+                                                {% for t_name in teams_dict.keys() %}
+                                                    <option value="{{ t_name }}" {% if t_name == m.home_team %}selected{% endif %}>Local: {{ t_name }}</option>
+                                                {% endfor %}
+                                            </select>
+                                        </div>
+                                        <div class="col-12">
+                                            <select name="edit_away_team_{{ m.id }}" id="edit_away_{{ m.id }}" class="form-select form-select-sm bg-dark text-white border-secondary mb-1" onchange="submitEditMatch('{{ m.id }}')">
+                                                {% for t_name in teams_dict.keys() %}
+                                                    <option value="{{ t_name }}" {% if t_name == m.away_team %}selected{% endif %}>Visitante: {{ t_name }}</option>
+                                                {% endfor %}
+                                            </select>
+                                        </div>
+                                        <div class="col-12">
+                                            <input type="datetime-local" name="edit_deadline_{{ m.id }}" id="edit_deadline_{{ m.id }}" class="form-control form-control-sm bg-dark text-white border-secondary" value="{{ m.deadline.strftime('%Y-%m-%dT%H:%M') }}" onchange="submitEditMatch('{{ m.id }}')" required>
+                                        </div>
+                                    </div>
                                 </div>
-                                <div class="col-12">
-                                    <select name="edit_away_team" class="form-select form-select-sm bg-dark text-white border-secondary mb-1">
-                                        {% for t_name in teams_dict.keys() %}
-                                            <option value="{{ t_name }}" {% if t_name == m.away_team %}selected{% endif %}>Visitante: {{ t_name }}</option>
-                                        {% endfor %}
-                                    </select>
-                                </div>
-                        </td>
-                        <td>
-                                <input type="datetime-local" name="edit_deadline" class="form-control form-control-sm bg-dark text-white border-secondary" value="{{ m.deadline.strftime('%Y-%m-%dT%H:%M') }}" required>
-                                <button type="submit" class="btn btn-sm btn-outline-info w-100 mt-1" title="Guardar cambios de equipos y hora">Guardar Datos</button>
-                            </form>
-                        </td>
-                        <td>
-                            {% if m.status == 'final' %}
-                                <span class="badge bg-success">Finalizado</span>
-                            {% else %}
-                                <span class="badge bg-warning text-dark">Programado</span>
-                            {% endif %}
-                        </td>
-                        <td>
-                            <!-- Formulario para actualizar el marcador final -->
-                            <form method="POST" action="{{ url_for('admin', week=week) }}#scores-section" class="d-flex align-items-center gap-1">
-                                <input type="hidden" name="action" value="update_score">
-                                <input type="hidden" name="match_id" value="{{ m.id }}">
-                                <input type="number" name="home_score" class="form-control form-control-sm text-center" value="{{ m.home_score }}" style="width: 60px;" required>
-                                <span>-</span>
-                                <input type="number" name="away_score" class="form-control form-control-sm text-center" value="{{ m.away_score }}" style="width: 60px;" required>
-                                <button type="submit" class="btn btn-sm btn-success ms-1" title="Actualizar marcador">✔</button>
-                            </form>
-                        </td>
-                        <td>
-                            <div class="d-flex flex-column gap-1">
+                            </td>
+                            <td>
                                 {% if m.status == 'final' %}
-                                    <form method="POST" action="{{ url_for('admin', week=week) }}#scores-section">
-                                        <input type="hidden" name="action" value="reopen_match">
-                                        <input type="hidden" name="match_id" value="{{ m.id }}">
-                                        <button type="submit" class="btn btn-sm btn-outline-warning w-100" title="Regresar a programado">Reabrir 🔄</button>
-                                    </form>
+                                    <span class="badge bg-success">Publicado</span>
+                                {% elif m.status == 'saved' %}
+                                    <span class="badge bg-info text-dark">Borrador</span>
+                                {% else %}
+                                    <span class="badge bg-warning text-dark">Programado</span>
                                 {% endif %}
-                                <form method="POST" action="{{ url_for('admin', week=week) }}#scores-section">
-                                    <input type="hidden" name="action" value="delete_match">
-                                    <input type="hidden" name="match_id" value="{{ m.id }}">
-                                    <button type="submit" class="btn btn-sm btn-outline-danger w-100" onclick="return confirm('¿Borrar partido?')">Borrar</button>
-                                </form>
-                            </div>
-                        </td>
-                    </tr>
-                {% else %}
-                    <tr>
-                        <td colspan="6" class="text-center text-muted py-3">No hay partidos creados para la Semana {{ week }} todavía.</td>
-                    </tr>
-                {% endfor %}
-            </tbody>
-        </table>
-    </div>
+                            </td>
+                            <td>
+                                <div class="d-flex align-items-center gap-2">
+                                    <input type="number" name="home_score_{{ m.id }}" class="form-control form-control-sm text-center" value="{{ m.home_score }}" style="width: 65px;" required>
+                                    <span>-</span>
+                                    <input type="number" name="away_score_{{ m.id }}" class="form-control form-control-sm text-center" value="{{ m.away_score }}" style="width: 65px;" required>
+                                </div>
+                            </td>
+                            <td>
+                                <div class="d-flex flex-column gap-1">
+                                    {% if m.status == 'final' %}
+                                        <button type="submit" name="action" value="reopen_match" formaction="{{ url_for('admin', week=week) }}" class="btn btn-sm btn-outline-warning" name="match_id" value="{{ m.id }}">Reabrir 🔄</button>
+                                    {% endif %}
+                                    <button type="submit" name="action" value="delete_match" formaction="{{ url_for('admin', week=week) }}" class="btn btn-sm btn-outline-danger" onclick="return confirm('¿Borrar partido?')" name="match_id" value="{{ m.id }}">Borrar</button>
+                                </div>
+                            </td>
+                        </tr>
+                    {% else %}
+                        <tr>
+                            <td colspan="5" class="text-center text-muted py-3">No hay partidos creados para la Semana {{ week }} todavía.</td>
+                        </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+
+        {% if matches %}
+            <!-- BOTONES MAESTROS DE GUARDADO EN LOTE Y PUBLICACIÓN -->
+            <div class="d-flex justify-content-end gap-3 mt-3">
+                <button type="submit" name="action" value="save_all_scores" class="btn btn-secondary px-4">
+                    💾 Guardar Borradores
+                </button>
+                <button type="submit" name="action" value="publish_week" class="btn btn-success px-4 fw-bold" onclick="return confirm('¿Estás seguro de publicar la jornada? Esto actualizará la tabla de posiciones global de todos los usuarios.')">
+                    🚀 Publicar Jornada Global
+                </button>
+            </div>
+        {% endif %}
+    </form>
 </div>
 
 <!-- SECCIÓN 4: GESTIÓN DE PARTICIPANTES -->
@@ -211,14 +216,12 @@
                     <tr>
                         <td>{{ loop.index }}</td>
                         <td>
-                            <!-- Formulario para editar nombre de usuario y contraseña al mismo tiempo -->
                             <form method="POST" action="{{ url_for('admin', week=week) }}#users-section" class="d-flex flex-column gap-2">
                                 <input type="hidden" name="action" value="edit_user">
                                 <input type="hidden" name="user_id" value="{{ u.id }}">
                                 <input type="text" name="edit_username" class="form-control form-control-sm text-info fw-bold" value="{{ u.username }}" required>
                         </td>
                         <td>
-                            <!-- Formulario independiente para alternar estatus de pago -->
                             </form>
                             <form method="POST" action="{{ url_for('admin', week=week) }}#users-section" class="d-inline">
                                 <input type="hidden" name="action" value="toggle_payment">
@@ -231,7 +234,6 @@
                             </form>
                         </td>
                         <td>
-                            <!-- Continuación del form de credenciales del usuario -->
                             <form method="POST" action="{{ url_for('admin', week=week) }}#users-section" class="d-flex gap-2 align-items-center">
                                 <input type="hidden" name="action" value="edit_user">
                                 <input type="hidden" name="user_id" value="{{ u.id }}">
@@ -285,6 +287,47 @@
             document.getElementById('display_away').innerText = teamName;
         }
         btnElement.closest('.team-row').classList.add('border-danger');
+    }
+
+    // Función auxiliar para disparar la actualización individual de un partido si cambian equipos o fecha
+    function submitEditMatch(matchId) {
+        // Creamos un form dinámico para enviar la edición de ese partido específico
+        let form = document.createElement('form');
+        form.method = 'POST';
+        form.action = "{{ url_for('admin', week=week) }}#scores-section";
+
+        let actionInput = document.createElement('input');
+        actionInput.type = 'hidden';
+        actionInput.name = 'action';
+        actionInput.value = 'edit_match';
+        form.appendChild(actionInput);
+
+        let idInput = document.createElement('input');
+        idInput.type = 'hidden';
+        idInput.name = 'match_id';
+        idInput.value = matchId;
+        form.appendChild(idInput);
+
+        let homeInput = document.createElement('input');
+        homeInput.type = 'hidden';
+        homeInput.name = 'edit_home_team';
+        homeInput.value = document.getElementById('edit_home_' + matchId).value;
+        form.appendChild(homeInput);
+
+        let awayInput = document.createElement('input');
+        awayInput.type = 'hidden';
+        awayInput.name = 'edit_away_team';
+        awayInput.value = document.getElementById('edit_away_' + matchId).value;
+        form.appendChild(awayInput);
+
+        let deadlineInput = document.createElement('input');
+        deadlineInput.type = 'hidden';
+        deadlineInput.name = 'edit_deadline';
+        deadlineInput.value = document.getElementById('edit_deadline_' + matchId).value;
+        form.appendChild(deadlineInput);
+
+        document.body.appendChild(form);
+        form.submit();
     }
 </script>
 {% endblock %}
