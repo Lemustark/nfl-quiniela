@@ -368,6 +368,32 @@ def admin():
                 )
             return redirect(url_for('admin', week=week))
 
+        # --- NUEVA ACCIÓN: EDITAR PARTIDO (EQUIPOS Y DEADLINE) ---
+        elif action == 'edit_match':
+            match_id = int(request.form.get('match_id'))
+            home_team = request.form.get('edit_home_team')
+            away_team = request.form.get('edit_away_team')
+            deadline_str = request.form.get('edit_deadline')
+
+            match = Match.query.get(match_id)
+            if match:
+                if home_team and away_team:
+                    if home_team == away_team:
+                        flash('El equipo local y visitante no pueden ser el mismo.', 'danger')
+                        return redirect(url_for('admin', week=current_week) + '#scores-section')
+                    
+                    match.home_team = home_team
+                    match.home_logo = NFL_TEAMS[home_team]
+                    match.away_team = away_team
+                    match.away_logo = NFL_TEAMS[away_team]
+
+                if deadline_str:
+                    match.deadline = datetime.strptime(deadline_str, '%Y-%m-%dT%H:%M')
+
+                db.session.commit()
+                flash('Partido actualizado correctamente.', 'success')
+            return redirect(url_for('admin', week=current_week) + '#scores-section')
+
         elif action == 'update_score':
             match_id = int(request.form.get('match_id'))
             home_score = int(request.form.get('home_score', 0))
@@ -407,15 +433,26 @@ def admin():
                 flash(f'Participante "{new_username}" registrado exitosamente.', 'success')
             return redirect(url_for('admin', week=current_week) + '#users-section')
 
+        # --- ACCIÓN MEJORADA: EDITAR USUARIO (NOMBRE Y/O CONTRASEÑA) ---
         elif action == 'edit_user':
             user_id = int(request.form.get('user_id'))
+            new_username = request.form.get('edit_username', '').strip()
             new_pass = request.form.get('edit_password')
             user_to_edit = User.query.get(user_id)
 
-            if user_to_edit and new_pass:
-                user_to_edit.password = new_pass
+            if user_to_edit:
+                if new_username and new_username != user_to_edit.username:
+                    # Validar que no exista otro usuario con ese nombre
+                    if User.query.filter_by(username=new_username).first():
+                        flash(f'El nombre de usuario "{new_username}" ya está en uso.', 'danger')
+                        return redirect(url_for('admin', week=current_week) + '#users-section')
+                    user_to_edit.username = new_username
+
+                if new_pass:
+                    user_to_edit.password = new_pass
+
                 db.session.commit()
-                flash(f'Contraseña actualizada para el usuario "{user_to_edit.username}".', 'success')
+                flash(f'Datos actualizados para el usuario "{user_to_edit.username}".', 'success')
             return redirect(url_for('admin', week=current_week) + '#users-section')
 
         elif action == 'delete_user':

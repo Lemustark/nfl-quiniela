@@ -72,9 +72,9 @@
                         <input type="number" name="week" class="form-control" min="1" max="18" value="{{ week }}" required>
                     </div>
                     <div class="col-md-6 mb-3">
-                        <label class="form-label">Fecha Límite (Solo 1er partido)</label>
+                        <label class="form-label">Fecha Límite (Deadline)</label>
                         <input type="datetime-local" name="deadline" class="form-control">
-                        <small class="text-muted" style="font-size: 0.72rem;">Obligatorio solo si es el primer juego de la semana.</small>
+                        <small class="text-muted" style="font-size: 0.72rem;">Referencia de cierre para la jornada.</small>
                     </div>
                 </div>
 
@@ -84,60 +84,84 @@
     </div>
 </form>
 
-<!-- SECCIÓN 3: Actualizar Marcadores Finales -->
+<!-- SECCIÓN 3: Actualizar Marcadores y Editar Partidos -->
 <div class="card card-match p-4 shadow mt-2 mb-4" id="scores-section">
-    <h4 class="mb-3 text-success">3. Actualizar Marcadores Finales (Semana {{ week }})</h4>
+    <h4 class="mb-3 text-success">3. Administrar Partidos y Marcadores (Semana {{ week }})</h4>
     <div class="table-responsive">
         <table class="table table-dark table-striped align-middle">
             <thead>
                 <tr>
                     <th>Sem</th>
-                    <th>Encuentro</th>
-                    <th>Cierre de Jornada</th>
+                    <th>Encuentro / Editar Equipos</th>
+                    <th>Cierre (Deadline)</th>
                     <th>Estado</th>
                     <th>Marcador (L - V)</th>
-                    <th>Acción</th>
+                    <th>Acciones</th>
                 </tr>
             </thead>
             <tbody>
                 {% for m in matches %}
                     <tr>
-                        <form method="POST" action="{{ url_for('admin', week=week) }}#scores-section">
-                            <input type="hidden" name="action" value="update_score">
-                            <input type="hidden" name="match_id" value="{{ m.id }}">
-                            <td>{{ m.week }}</td>
-                            <td class="fw-semibold">{{ m.home_team }} vs {{ m.away_team }}</td>
-                            <td><small>{{ m.deadline.strftime('%d/%m/%Y %H:%M') }}</small></td>
-                            <td>
-                                {% if m.status == 'final' %}
-                                    <span class="badge bg-success">Finalizado</span>
-                                {% else %}
-                                    <span class="badge bg-warning text-dark">Programado</span>
-                                {% endif %}
-                            </td>
-                            <td>
-                                <div class="d-flex align-items-center gap-2">
-                                    <input type="number" name="home_score" class="form-control form-control-sm text-center" value="{{ m.home_score }}" style="width: 70px;" required>
-                                    <span>-</span>
-                                    <input type="number" name="away_score" class="form-control form-control-sm text-center" value="{{ m.away_score }}" style="width: 70px;" required>
+                        <td>{{ m.week }}</td>
+                        <!-- Formulario para editar Equipos y Deadline del partido -->
+                        <td>
+                            <form method="POST" action="{{ url_for('admin', week=week) }}#scores-section" class="row g-1 align-items-center">
+                                <input type="hidden" name="action" value="edit_match">
+                                <input type="hidden" name="match_id" value="{{ m.id }}">
+                                <div class="col-12">
+                                    <select name="edit_home_team" class="form-select form-select-sm bg-dark text-white border-secondary mb-1">
+                                        {% for t_name in teams_dict.keys() %}
+                                            <option value="{{ t_name }}" {% if t_name == m.home_team %}selected{% endif %}>Local: {{ t_name }}</option>
+                                        {% endfor %}
+                                    </select>
                                 </div>
-                            </td>
-                            <td>
-                                <button type="submit" class="btn btn-sm btn-success mb-1" title="Guardar cambios de marcador">Guardar</button>
-                        </form>
+                                <div class="col-12">
+                                    <select name="edit_away_team" class="form-select form-select-sm bg-dark text-white border-secondary mb-1">
+                                        {% for t_name in teams_dict.keys() %}
+                                            <option value="{{ t_name }}" {% if t_name == m.away_team %}selected{% endif %}>Visitante: {{ t_name }}</option>
+                                        {% endfor %}
+                                    </select>
+                                </div>
+                        </td>
+                        <td>
+                                <input type="datetime-local" name="edit_deadline" class="form-control form-control-sm bg-dark text-white border-secondary" value="{{ m.deadline.strftime('%Y-%m-%dT%H:%M') }}" required>
+                                <button type="submit" class="btn btn-sm btn-outline-info w-100 mt-1" title="Guardar cambios de equipos y hora">Guardar Datos</button>
+                            </form>
+                        </td>
+                        <td>
+                            {% if m.status == 'final' %}
+                                <span class="badge bg-success">Finalizado</span>
+                            {% else %}
+                                <span class="badge bg-warning text-dark">Programado</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            <!-- Formulario para actualizar el marcador final -->
+                            <form method="POST" action="{{ url_for('admin', week=week) }}#scores-section" class="d-flex align-items-center gap-1">
+                                <input type="hidden" name="action" value="update_score">
+                                <input type="hidden" name="match_id" value="{{ m.id }}">
+                                <input type="number" name="home_score" class="form-control form-control-sm text-center" value="{{ m.home_score }}" style="width: 60px;" required>
+                                <span>-</span>
+                                <input type="number" name="away_score" class="form-control form-control-sm text-center" value="{{ m.away_score }}" style="width: 60px;" required>
+                                <button type="submit" class="btn btn-sm btn-success ms-1" title="Actualizar marcador">✔</button>
+                            </form>
+                        </td>
+                        <td>
+                            <div class="d-flex flex-column gap-1">
                                 {% if m.status == 'final' %}
-                                    <form method="POST" action="{{ url_for('admin', week=week) }}#scores-section" class="d-inline ms-1">
+                                    <form method="POST" action="{{ url_for('admin', week=week) }}#scores-section">
                                         <input type="hidden" name="action" value="reopen_match">
                                         <input type="hidden" name="match_id" value="{{ m.id }}">
-                                        <button type="submit" class="btn btn-sm btn-outline-warning mb-1" title="Regresar a programado para corregir">Reabrir 🔄</button>
+                                        <button type="submit" class="btn btn-sm btn-outline-warning w-100" title="Regresar a programado">Reabrir 🔄</button>
                                     </form>
                                 {% endif %}
-                                <form method="POST" action="{{ url_for('admin', week=week) }}#scores-section" class="d-inline ms-1">
+                                <form method="POST" action="{{ url_for('admin', week=week) }}#scores-section">
                                     <input type="hidden" name="action" value="delete_match">
                                     <input type="hidden" name="match_id" value="{{ m.id }}">
-                                    <button type="submit" class="btn btn-sm btn-outline-danger mb-1" onclick="return confirm('¿Borrar partido?')">Borrar</button>
+                                    <button type="submit" class="btn btn-sm btn-outline-danger w-100" onclick="return confirm('¿Borrar partido?')">Borrar</button>
                                 </form>
-                            </td>
+                            </div>
+                        </td>
                     </tr>
                 {% else %}
                     <tr>
@@ -176,9 +200,9 @@
             <thead>
                 <tr>
                     <th>#</th>
-                    <th>Nombre de Usuario</th>
+                    <th>Nombre de Usuario (Editable)</th>
                     <th>Estatus de Pago</th>
-                    <th>Cambiar Contraseña</th>
+                    <th>Modificar Credenciales</th>
                     <th>Acciones</th>
                 </tr>
             </thead>
@@ -186,9 +210,16 @@
                 {% for u in users_list %}
                     <tr>
                         <td>{{ loop.index }}</td>
-                        <td class="fw-bold text-info">{{ u.username }}</td>
                         <td>
-                            <!-- Formulario para alternar estatus de pago -->
+                            <!-- Formulario para editar nombre de usuario y contraseña al mismo tiempo -->
+                            <form method="POST" action="{{ url_for('admin', week=week) }}#users-section" class="d-flex flex-column gap-2">
+                                <input type="hidden" name="action" value="edit_user">
+                                <input type="hidden" name="user_id" value="{{ u.id }}">
+                                <input type="text" name="edit_username" class="form-control form-control-sm text-info fw-bold" value="{{ u.username }}" required>
+                        </td>
+                        <td>
+                            <!-- Formulario independiente para alternar estatus de pago -->
+                            </form>
                             <form method="POST" action="{{ url_for('admin', week=week) }}#users-section" class="d-inline">
                                 <input type="hidden" name="action" value="toggle_payment">
                                 <input type="hidden" name="user_id" value="{{ u.id }}">
@@ -200,10 +231,12 @@
                             </form>
                         </td>
                         <td>
-                            <form method="POST" action="{{ url_for('admin', week=week) }}#users-section" class="d-flex gap-2">
+                            <!-- Continuación del form de credenciales del usuario -->
+                            <form method="POST" action="{{ url_for('admin', week=week) }}#users-section" class="d-flex gap-2 align-items-center">
                                 <input type="hidden" name="action" value="edit_user">
                                 <input type="hidden" name="user_id" value="{{ u.id }}">
-                                <input type="text" name="edit_password" class="form-control form-control-sm" placeholder="Nueva contraseña" required style="max-width: 180px;">
+                                <input type="hidden" name="edit_username" value="{{ u.username }}">
+                                <input type="text" name="edit_password" class="form-control form-control-sm" placeholder="Nueva contraseña (opcional)" style="max-width: 170px;">
                                 <button type="submit" class="btn btn-sm btn-outline-warning">Actualizar</button>
                             </form>
                         </td>
